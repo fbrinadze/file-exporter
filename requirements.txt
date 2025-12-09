@@ -3,4 +3,3 @@ openpyxl
 python-docx
 python-pptx
 requests
-python-dotenv

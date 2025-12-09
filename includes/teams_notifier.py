@@ -5,17 +5,16 @@ Sends notifications to MS Teams channel via webhook.
 
 Requirements:
     - requests (pip install requests)
-    - python-dotenv (pip install python-dotenv)
 """
 
 import os
 import requests
-from dotenv import load_dotenv
+from .config_manager import ConfigManager
 
 
 def load_teams_config():
     """
-    Load MS Teams webhook URL from environment variables.
+    Load MS Teams webhook URL from config file.
     
     Returns:
         str: Teams webhook URL
@@ -23,17 +22,28 @@ def load_teams_config():
     Raises:
         ValueError: If webhook URL is missing
     """
-    load_dotenv()
+    config_mgr = ConfigManager()
+    teams_config = config_mgr.get_teams_config()
     
-    webhook_url = os.getenv('TEAMS_WEBHOOK_URL')
+    webhook_url = teams_config.get('webhook_url')
     
     if not webhook_url:
         raise ValueError(
-            "Missing Teams webhook URL. Please ensure .env file exists with:\n"
-            "TEAMS_WEBHOOK_URL"
+            "Missing Teams webhook URL. Please configure in Settings."
         )
     
     return webhook_url
+
+
+def is_enabled():
+    """
+    Check if Teams notifications are enabled.
+    
+    Returns:
+        bool: True if enabled, False otherwise
+    """
+    config_mgr = ConfigManager()
+    return config_mgr.is_teams_enabled()
 
 
 def send_teams_message(title, message, color="0078D4", webhook_url=None):
@@ -44,7 +54,7 @@ def send_teams_message(title, message, color="0078D4", webhook_url=None):
         title: Message title
         message: The message text to send
         color: Hex color for the message card (default: blue)
-        webhook_url: Optional webhook URL (if None, loads from environment)
+        webhook_url: Optional webhook URL (if None, loads from config)
         
     Returns:
         bool: True if message sent successfully, False otherwise
@@ -73,17 +83,6 @@ def send_teams_message(title, message, color="0078D4", webhook_url=None):
     except Exception as e:
         print(f"Failed to send Teams message: {e}")
         return False
-
-
-def is_enabled():
-    """
-    Check if Teams notifications are enabled.
-    
-    Returns:
-        bool: True if enabled, False otherwise
-    """
-    load_dotenv()
-    return os.getenv('TEAMS_ENABLED', 'false').lower() == 'true'
 
 
 def send_success_notification(file_count, output_file):

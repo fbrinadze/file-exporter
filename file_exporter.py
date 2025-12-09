@@ -23,7 +23,7 @@ __version__ = "2.0"
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from dotenv import set_key, load_dotenv
+from includes.config_manager import ConfigManager
 
 # Import core functions
 from file_exporter_core import (
@@ -232,7 +232,8 @@ class FileLocationExporter:
         settings_window.resizable(False, False)
         
         # Load current settings
-        load_dotenv()
+        config_mgr = ConfigManager()
+        config = config_mgr.load()
         
         # Create notebook for tabs
         notebook = ttk.Notebook(settings_window)
@@ -248,7 +249,7 @@ class FileLocationExporter:
         tk.Label(email_frame, text="Configure SMTP settings to receive email notifications", fg="gray").pack()
         
         # Enable/Disable checkbox
-        email_enabled_var = tk.BooleanVar(value=os.getenv('EMAIL_ENABLED', 'false').lower() == 'true')
+        email_enabled_var = tk.BooleanVar(value=config['email']['enabled'])
         enable_frame = tk.Frame(email_frame)
         enable_frame.pack(pady=10)
         tk.Checkbutton(
@@ -264,32 +265,32 @@ class FileLocationExporter:
         
         tk.Label(fields_frame, text="SMTP Server:").grid(row=0, column=0, sticky="w", pady=5)
         smtp_server = tk.Entry(fields_frame, width=40)
-        smtp_server.insert(0, os.getenv('SMTP_SERVER', 'smtp.gmail.com'))
+        smtp_server.insert(0, config['email']['smtp_server'])
         smtp_server.grid(row=0, column=1, pady=5, padx=5)
         
         tk.Label(fields_frame, text="SMTP Port:").grid(row=1, column=0, sticky="w", pady=5)
         smtp_port = tk.Entry(fields_frame, width=40)
-        smtp_port.insert(0, os.getenv('SMTP_PORT', '587'))
+        smtp_port.insert(0, str(config['email']['smtp_port']))
         smtp_port.grid(row=1, column=1, pady=5, padx=5)
         
         tk.Label(fields_frame, text="Username:").grid(row=2, column=0, sticky="w", pady=5)
         smtp_user = tk.Entry(fields_frame, width=40)
-        smtp_user.insert(0, os.getenv('SMTP_USERNAME', ''))
+        smtp_user.insert(0, config['email']['username'])
         smtp_user.grid(row=2, column=1, pady=5, padx=5)
         
         tk.Label(fields_frame, text="Password:").grid(row=3, column=0, sticky="w", pady=5)
         smtp_pass = tk.Entry(fields_frame, width=40, show="*")
-        smtp_pass.insert(0, os.getenv('SMTP_PASSWORD', ''))
+        smtp_pass.insert(0, config['email']['password'])
         smtp_pass.grid(row=3, column=1, pady=5, padx=5)
         
         tk.Label(fields_frame, text="From Email:").grid(row=4, column=0, sticky="w", pady=5)
         from_email = tk.Entry(fields_frame, width=40)
-        from_email.insert(0, os.getenv('FROM_EMAIL', ''))
+        from_email.insert(0, config['email']['from_email'])
         from_email.grid(row=4, column=1, pady=5, padx=5)
         
         tk.Label(fields_frame, text="To Email:").grid(row=5, column=0, sticky="w", pady=5)
         to_email = tk.Entry(fields_frame, width=40)
-        to_email.insert(0, os.getenv('TO_EMAIL', ''))
+        to_email.insert(0, config['email']['to_email'])
         to_email.grid(row=5, column=1, pady=5, padx=5)
         
         # Quick presets
@@ -322,7 +323,7 @@ class FileLocationExporter:
         tk.Label(teams_frame, text="Configure webhook URL to receive Teams notifications", fg="gray").pack()
         
         # Enable/Disable checkbox
-        teams_enabled_var = tk.BooleanVar(value=os.getenv('TEAMS_ENABLED', 'false').lower() == 'true')
+        teams_enabled_var = tk.BooleanVar(value=config['teams']['enabled'])
         teams_enable_frame = tk.Frame(teams_frame)
         teams_enable_frame.pack(pady=10)
         tk.Checkbutton(
@@ -337,7 +338,7 @@ class FileLocationExporter:
         
         tk.Label(teams_fields, text="Webhook URL:").pack(anchor="w", pady=5)
         teams_webhook = tk.Entry(teams_fields, width=60)
-        teams_webhook.insert(0, os.getenv('TEAMS_WEBHOOK_URL', ''))
+        teams_webhook.insert(0, config['teams']['webhook_url'])
         teams_webhook.pack(pady=5)
         
         tk.Label(teams_frame, text="How to get a webhook URL:", font=("Arial", 10, "bold")).pack(pady=(20,5))
@@ -358,39 +359,30 @@ class FileLocationExporter:
         # SAVE BUTTON
         # ============================================================
         def save_settings():
-            env_file = '.env'
+            # Create new config
+            new_config = {
+                'email': {
+                    'enabled': email_enabled_var.get(),
+                    'smtp_server': smtp_server.get(),
+                    'smtp_port': int(smtp_port.get()) if smtp_port.get() else 587,
+                    'username': smtp_user.get(),
+                    'password': smtp_pass.get(),
+                    'from_email': from_email.get(),
+                    'to_email': to_email.get()
+                },
+                'teams': {
+                    'enabled': teams_enabled_var.get(),
+                    'webhook_url': teams_webhook.get()
+                }
+            }
             
-            # Create .env if it doesn't exist
-            if not os.path.exists(env_file):
-                with open(env_file, 'w') as f:
-                    f.write("# Notification Settings\n")
-            
-            # Save email enabled/disabled
-            set_key(env_file, 'EMAIL_ENABLED', 'true' if email_enabled_var.get() else 'false')
-            
-            # Save email settings
-            if smtp_server.get():
-                set_key(env_file, 'SMTP_SERVER', smtp_server.get())
-            if smtp_port.get():
-                set_key(env_file, 'SMTP_PORT', smtp_port.get())
-            if smtp_user.get():
-                set_key(env_file, 'SMTP_USERNAME', smtp_user.get())
-            if smtp_pass.get():
-                set_key(env_file, 'SMTP_PASSWORD', smtp_pass.get())
-            if from_email.get():
-                set_key(env_file, 'FROM_EMAIL', from_email.get())
-            if to_email.get():
-                set_key(env_file, 'TO_EMAIL', to_email.get())
-            
-            # Save Teams enabled/disabled
-            set_key(env_file, 'TEAMS_ENABLED', 'true' if teams_enabled_var.get() else 'false')
-            
-            # Save Teams settings
-            if teams_webhook.get():
-                set_key(env_file, 'TEAMS_WEBHOOK_URL', teams_webhook.get())
-            
-            messagebox.showinfo("Success", "Settings saved successfully!\n\nNotifications will be sent based on your enabled settings.")
-            settings_window.destroy()
+            # Save config
+            config_mgr = ConfigManager()
+            if config_mgr.save(new_config):
+                messagebox.showinfo("Success", "Settings saved successfully!\n\nNotifications will be sent based on your enabled settings.")
+                settings_window.destroy()
+            else:
+                messagebox.showerror("Error", "Failed to save settings. Please try again.")
         
         button_frame = tk.Frame(settings_window)
         button_frame.pack(pady=10)

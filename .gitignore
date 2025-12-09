@@ -1,5 +1,5 @@
-# Environment variables - NEVER commit these!
-.env
+# Configuration files - NEVER commit these!
+config.json
 
 # Python
 __pycache__/

@@ -3,41 +3,38 @@ Email Notification Module
 ==========================
 Sends email notifications for export success or failure.
 Works on Windows, macOS, and Linux.
-
-Requirements:
-    - python-dotenv (pip install python-dotenv)
 """
 
 import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from dotenv import load_dotenv
+from .config_manager import ConfigManager
 
 
 def load_email_config():
     """
-    Load email configuration from environment variables.
+    Load email configuration from config file.
     
     Returns:
         dict: Configuration dictionary with email settings
         
     Raises:
-        ValueError: If required environment variables are missing
+        ValueError: If required configuration is missing
     """
-    load_dotenv()
+    config_mgr = ConfigManager()
+    email_config = config_mgr.get_email_config()
     
-    smtp_server = os.getenv('SMTP_SERVER')
-    smtp_port = os.getenv('SMTP_PORT', '587')
-    smtp_username = os.getenv('SMTP_USERNAME')
-    smtp_password = os.getenv('SMTP_PASSWORD')
-    from_email = os.getenv('FROM_EMAIL')
-    to_email = os.getenv('TO_EMAIL')
+    smtp_server = email_config.get('smtp_server')
+    smtp_port = email_config.get('smtp_port', 587)
+    smtp_username = email_config.get('username')
+    smtp_password = email_config.get('password')
+    from_email = email_config.get('from_email')
+    to_email = email_config.get('to_email')
     
     if not all([smtp_server, smtp_username, smtp_password, from_email, to_email]):
         raise ValueError(
-            "Missing email configuration. Please ensure .env file exists with:\n"
-            "SMTP_SERVER, SMTP_USERNAME, SMTP_PASSWORD, FROM_EMAIL, TO_EMAIL"
+            "Missing email configuration. Please configure in Settings."
         )
     
     return {
@@ -50,6 +47,17 @@ def load_email_config():
     }
 
 
+def is_enabled():
+    """
+    Check if email notifications are enabled.
+    
+    Returns:
+        bool: True if enabled, False otherwise
+    """
+    config_mgr = ConfigManager()
+    return config_mgr.is_email_enabled()
+
+
 def send_email(subject, body_html, body_text=None, config=None):
     """
     Send an email using SMTP.
@@ -58,7 +66,7 @@ def send_email(subject, body_html, body_text=None, config=None):
         subject: Email subject line
         body_html: HTML body content
         body_text: Plain text alternative (optional)
-        config: Optional config dict (if None, loads from environment)
+        config: Optional config dict (if None, loads from config file)
         
     Returns:
         bool: True if email sent successfully, False otherwise
@@ -93,17 +101,6 @@ def send_email(subject, body_html, body_text=None, config=None):
     except Exception as e:
         print(f"Failed to send email: {e}")
         return False
-
-
-def is_enabled():
-    """
-    Check if email notifications are enabled.
-    
-    Returns:
-        bool: True if enabled, False otherwise
-    """
-    load_dotenv()
-    return os.getenv('EMAIL_ENABLED', 'false').lower() == 'true'
 
 
 def send_success_notification(file_count, output_file):
