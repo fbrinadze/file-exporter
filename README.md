@@ -84,8 +84,9 @@ See **[DOCUMENTATION.md](DOCUMENTATION.md)** for complete documentation includin
 
 - `file_exporter.py` - Main GUI application
 - `file_exporter_core.py` - Core scanning logic
-- `email_notifier.py` - Email notifications
-- `teams_notifier.py` - Teams notifications
+- `includes/` - Notification modules
+  - `email_notifier.py` - Email notifications
+  - `teams_notifier.py` - Teams notifications
 - `build_exe.bat` - One-click executable builder
 - `create_distribution.bat` - Package for distribution
 - `test_notifications.py` - Test notification setup

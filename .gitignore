@@ -26,7 +26,7 @@ wheels/
 # PyInstaller
 *.manifest
 *.spec
-file_exporter.spec
+**/*.spec
 
 # Distribution folders and executables
 dist/

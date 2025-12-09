@@ -32,7 +32,7 @@ from file_exporter_core import (
 
 # Import notification functions
 try:
-    from teams_notifier import (
+    from includes.teams_notifier import (
         send_success_notification as teams_success,
         send_failure_notification as teams_failure
     )
@@ -42,7 +42,7 @@ except ImportError:
     print("Teams notifications not available. Install requests and python-dotenv to enable.")
 
 try:
-    from email_notifier import (
+    from includes.email_notifier import (
         send_success_notification as email_success,
         send_failure_notification as email_failure
     )
@@ -182,10 +182,11 @@ class FileLocationExporter:
             width=18, 
             height=2, 
             bg="#C62828",  # Darker red for better contrast
-            fg="white",
+            fg="yellow",  # Change this to your preferred color
             font=("Arial", 11, "bold"),
             activebackground="#8E0000",  # Even darker when clicked
-            activeforeground="white",
+            activeforeground="white",  # Change this too
+            disabledforeground="white",  # And this for disabled state
             relief="raised",
             bd=3,
             cursor="hand2",
