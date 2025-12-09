@@ -47,9 +47,14 @@ htmlcov/
 
 # IDEs
 .vscode/
+.vscode/*
+*.code-workspace
 .idea/
+.idea/*
 *.swp
 *.swo
+*.sublime-project
+*.sublime-workspace
 
 # OS
 .DS_Store
