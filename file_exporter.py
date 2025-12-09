@@ -18,7 +18,7 @@ To create a standalone .exe:
 """
 
 # Version information
-__version__ = "2.0"
+__version__ = "2.2"  # Added duplicate detection
 
 import os
 import time
@@ -26,6 +26,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from includes.config_manager import ConfigManager
 from includes.scan_cache import ScanCache
+from includes.duplicate_detector import DuplicateDetector
 
 # Import core functions
 from file_exporter_core import (
@@ -80,8 +81,10 @@ class FileLocationExporter:
         # Store root reference for updates
         self.root = root
         
-        # Initialize scan cache
+        # Initialize scan cache and duplicate detector
         self.scan_cache = ScanCache()
+        self.duplicate_detector = DuplicateDetector()
+        self.last_scan_files = []  # Store last scan for duplicate detection
         
         # ============================================================
         # WINDOW SETUP
@@ -140,6 +143,9 @@ class FileLocationExporter:
         self.include_author_var = tk.BooleanVar(value=True)
         tk.Checkbutton(root, text="Include file author (Office files only)", variable=self.include_author_var).pack(anchor="w", padx=10, pady=(5,0))
         
+        self.detect_duplicates_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(root, text="Detect duplicate files (slower, adds DuplicateGroup column)", variable=self.detect_duplicates_var).pack(anchor="w", padx=10, pady=(5,0))
+        
         # ============================================================
         # FILE EXTENSION FILTER
         # Optional filter to only include specific file types
@@ -180,7 +186,26 @@ class FileLocationExporter:
             bd=3,
             cursor="hand2"
         )
-        self.export_btn.pack(side="left", padx=10)
+        self.export_btn.pack(side="left", padx=5)
+        
+        # View Duplicates Button
+        self.duplicates_btn = tk.Button(
+            button_frame,
+            text="View Duplicates",
+            command=self.view_duplicates,
+            width=18,
+            height=2,
+            bg="#1976D2",  # Blue
+            fg="white",
+            font=("Arial", 11, "bold"),
+            activebackground="#0D47A1",
+            activeforeground="white",
+            relief="raised",
+            bd=3,
+            cursor="hand2",
+            state="disabled"  # Disabled until duplicates are found
+        )
+        self.duplicates_btn.pack(side="left", padx=5)
         
         # Cancel Button - Stops the export process early
         self.cancel_btn = tk.Button(
@@ -213,6 +238,79 @@ class FileLocationExporter:
             font=("Arial", 8)
         )
         version_label.pack(side="right", anchor="se", padx=10, pady=5)
+    
+    
+    def view_duplicates(self):
+        """
+        Show duplicate files in a dialog window.
+        """
+        if not self.duplicate_detector.duplicates:
+            messagebox.showinfo("No Duplicates", "No duplicates to display. Run a scan with 'Detect duplicate files' enabled.")
+            return
+        
+        # Create duplicates window
+        dup_window = tk.Toplevel(self.root)
+        dup_window.title("Duplicate Files")
+        dup_window.geometry("800x600")
+        
+        # Stats at top
+        stats = self.duplicate_detector.get_duplicate_stats()
+        stats_text = (
+            f"Duplicate Groups: {stats['duplicate_groups']} | "
+            f"Duplicate Files: {stats['duplicate_files']} | "
+            f"Wasted Space: {self.duplicate_detector.format_size(stats['wasted_space'])}"
+        )
+        tk.Label(dup_window, text=stats_text, font=("Arial", 10, "bold"), fg="red").pack(pady=10)
+        
+        # Scrollable text area
+        frame = tk.Frame(dup_window)
+        frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        scrollbar = tk.Scrollbar(frame)
+        scrollbar.pack(side="right", fill="y")
+        
+        text_area = tk.Text(frame, wrap="word", yscrollcommand=scrollbar.set, font=("Courier", 9))
+        text_area.pack(side="left", fill="both", expand=True)
+        scrollbar.config(command=text_area.yview)
+        
+        # Populate with duplicate info
+        for i, group in enumerate(self.duplicate_detector.duplicates, 1):
+            text_area.insert("end", f"═══ Group {i}: {group['count']} duplicates ═══\n", "header")
+            text_area.insert("end", f"Total Size: {self.duplicate_detector.format_size(group['total_size'])}\n")
+            text_area.insert("end", f"Wasted: {self.duplicate_detector.format_size(group['total_size'] - (group['total_size'] / group['count']))}\n\n")
+            
+            for file_info in group['files']:
+                text_area.insert("end", f"  📄 {file_info['FileName']}\n", "filename")
+                text_area.insert("end", f"     {file_info['FullPath']}\n\n", "path")
+            
+            text_area.insert("end", "─" * 80 + "\n\n")
+        
+        # Configure tags for styling
+        text_area.tag_config("header", foreground="blue", font=("Courier", 9, "bold"))
+        text_area.tag_config("filename", foreground="darkgreen", font=("Courier", 9, "bold"))
+        text_area.tag_config("path", foreground="gray")
+        
+        text_area.config(state="disabled")
+        
+        # Export button
+        def export_report():
+            report_file = filedialog.asksaveasfilename(
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt")],
+                initialfile="Duplicate_Report.txt"
+            )
+            if report_file:
+                if self.duplicate_detector.export_duplicate_report(report_file):
+                    messagebox.showinfo("Success", f"Report exported to:\n{report_file}")
+        
+        tk.Button(
+            dup_window,
+            text="Export Report",
+            command=export_report,
+            bg="#2E7D32",
+            fg="white",
+            font=("Arial", 10, "bold")
+        ).pack(pady=10)
     
     
     def browse_directory(self):
@@ -678,6 +776,53 @@ Most Scanned: {cache_stats['most_scanned'] or 'None'}
                 # Cache the results if no filter was applied
                 if not extensions and not self.cancel_requested:
                     self.scan_cache.put(directory, files)
+            
+            # ============================================================
+            # DUPLICATE DETECTION
+            # Find duplicate files if enabled
+            # ============================================================
+            if self.detect_duplicates_var.get() and not self.cancel_requested:
+                self.progress_var.set("Detecting duplicates...")
+                self.root.update()
+                
+                def duplicate_progress(current, total):
+                    self.progress_var.set(f"Detecting duplicates... ({current}/{total})")
+                    self.root.update()
+                
+                duplicates = self.duplicate_detector.find_duplicates(
+                    files,
+                    use_quick_hash=True,
+                    progress_callback=duplicate_progress
+                )
+                
+                # Add duplicate group information to files
+                duplicate_map = {}
+                for group_num, group in enumerate(duplicates, 1):
+                    for file_info in group['files']:
+                        duplicate_map[file_info['FullPath']] = f"Group {group_num} ({group['count']} files)"
+                
+                # Update files with duplicate info
+                for file_info in files:
+                    filepath = file_info.get('FullPath')
+                    file_info['DuplicateGroup'] = duplicate_map.get(filepath, 'Unique')
+                
+                # Show duplicate stats and enable button
+                if duplicates:
+                    stats = self.duplicate_detector.get_duplicate_stats()
+                    dup_msg = (
+                        f"Found {stats['duplicate_groups']} duplicate groups!\n"
+                        f"Duplicate files: {stats['duplicate_files']}\n"
+                        f"Wasted space: {self.duplicate_detector.format_size(stats['wasted_space'])}\n\n"
+                        f"Click 'View Duplicates' button to see details."
+                    )
+                    messagebox.showinfo("Duplicates Found", dup_msg)
+                    self.duplicates_btn.config(state="normal")
+                else:
+                    messagebox.showinfo("No Duplicates", "No duplicate files found!")
+                    self.duplicates_btn.config(state="disabled")
+            
+            # Store files for later use
+            self.last_scan_files = files
             
             # ============================================================
             # HANDLE CANCELLATION
