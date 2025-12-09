@@ -2,6 +2,8 @@
 
 **Version 2.0** | Network-Safe with Notifications | Cross-Platform
 
+*Version displayed in application: Lower right corner and window title*
+
 ---
 
 ## Table of Contents

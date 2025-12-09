@@ -104,4 +104,4 @@ Free to use and modify.
 
 ---
 
-**Version 2.0** | Built with Python, tkinter, pandas, and openpyxl
+**Version 2.0** | Network-Safe with Notifications | Built with Python, tkinter, pandas, and openpyxl

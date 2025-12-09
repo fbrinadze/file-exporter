@@ -17,6 +17,9 @@ To create a standalone .exe:
     python -m PyInstaller --onefile --windowed file_exporter.py
 """
 
+# Version information
+__version__ = "2.0"
+
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -79,7 +82,7 @@ class FileLocationExporter:
         # WINDOW SETUP
         # Configure the main application window
         # ============================================================
-        root.title("File Location Exporter")
+        root.title(f"File Location Exporter v{__version__}")
         root.geometry("600x500")
         root.resizable(False, False)
         
@@ -193,6 +196,18 @@ class FileLocationExporter:
             state="disabled"  # Disabled until export starts
         )
         self.cancel_btn.pack(side="left", padx=10)
+        
+        # ============================================================
+        # VERSION LABEL
+        # Display version number in lower right corner
+        # ============================================================
+        version_label = tk.Label(
+            root,
+            text=f"Version {__version__}",
+            fg="gray",
+            font=("Arial", 8)
+        )
+        version_label.pack(side="right", anchor="se", padx=10, pady=5)
     
     
     def browse_directory(self):
