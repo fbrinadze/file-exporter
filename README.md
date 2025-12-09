@@ -1,148 +1,106 @@
 # File Location Exporter
 
-A network-safe desktop application that scans directories and exports file information to Excel with MS Teams notifications.
-
-## Features
-
-✅ **Network Drive Safe** - Throttled access, error recovery, connection monitoring  
-✅ **Email Notifications** - Success/failure alerts via email (works on Windows, macOS, Linux)  
-✅ **MS Teams Notifications** - Optional webhook notifications  
-✅ **Flexible Filtering** - Filter by file extensions  
-✅ **Metadata Extraction** - File dates and Office document authors  
-✅ **Progress Tracking** - Real-time updates with cancel option  
-✅ **Folder Structure** - Breaks directory hierarchy into columns  
-✅ **Cross-Platform** - Works on Windows, macOS, and Linux  
+A network-safe desktop application that scans directories and exports file information to Excel with email and Teams notifications.
 
 ## Quick Start
 
-### 1. Install Dependencies
+### For End Users
+1. Run `File_Exporter.exe`
+2. Select a directory
+3. Click "Export to Excel"
+4. Done!
 
-**Windows:**
+### For Developers
 ```bash
 pip install -r requirements.txt
-```
-
-**macOS/Linux:**
-```bash
-pip3 install -r requirements.txt
-```
-
-See [MACOS_SETUP.md](MACOS_SETUP.md) for macOS-specific instructions.
-
-### 2. Configure Notifications (Optional)
-
-**Email** (Recommended - works everywhere):  
-See [SETUP_EMAIL.md](SETUP_EMAIL.md) for email setup.
-
-**MS Teams** (Optional):  
-See [SETUP_TEAMS.md](SETUP_TEAMS.md) for webhook setup.
-
-### 3. Run Application
-
-**Windows:**
-```bash
 python file_exporter.py
 ```
-Or use the compiled `.exe` in the `dist` folder.
 
-**macOS/Linux:**
-```bash
-python3 file_exporter.py
-```
+## Features
 
-## Usage
+✅ Network drive safe with throttling and error recovery  
+✅ Email notifications (configure in Settings)  
+✅ MS Teams notifications (configure in Settings)  
+✅ GUI settings dialog - no manual .env editing needed  
+✅ Progress tracking with cancel option  
+✅ Filter by file extensions  
+✅ Extract file dates, types, and Office document authors  
+✅ Cross-platform (Windows, macOS, Linux)
 
-1. **Select Directory**: Click Browse to choose folder to scan
-2. **Configure Options**: Set folder columns, filters, metadata options
-3. **Export**: Click "Export to Excel" and choose save location
-4. **Monitor**: Watch progress counter and use Cancel if needed
+## Configuration
 
-## Network Drive Safety
+Click the **⚙ Settings** button in the app to configure:
+- Email notifications (SMTP settings)
+- MS Teams notifications (webhook URL)
 
-The application automatically detects network drives and applies safety features:
-- Throttled file access (10ms delays)
-- Error recovery and retry logic
-- Connection monitoring
-- Graceful failure handling
-
-See [NETWORK_SAFETY.md](NETWORK_SAFETY.md) for complete details.
-
-## Files
-
-- `file_exporter.py` - Main GUI application
-- `file_exporter_core.py` - Core scanning logic
-- `teams_notifier.py` - MS Teams integration
-- `email_notifier.py` - Email notification integration
-- `.env` - Your configuration (not in git)
-- `.env.example` - Configuration template
-
-## Security
-
-Your Teams webhook URL is stored in `.env` which is excluded from git via `.gitignore`.
+No manual file editing required!
 
 ## Building Executable
 
 **Windows:**
 ```bash
-pip install pyinstaller
-pyinstaller --onefile --windowed file_exporter.py
+build_exe.bat
 ```
-The `.exe` will be in the `dist` folder.
 
-**macOS:**
+**Manual:**
 ```bash
-pip3 install pyinstaller
-pyinstaller --onefile --windowed --name "File Exporter" file_exporter.py
+python -m PyInstaller --onefile --windowed file_exporter.py
 ```
-The `.app` will be in the `dist` folder.
 
-See [MACOS_SETUP.md](MACOS_SETUP.md) for py2app alternative.
+The .exe will be in the `dist` folder.
 
-## Testing Notifications
+## Distribution
 
-Test your notification setup before running exports:
+The .exe works standalone - no Python installation needed!
+
+To create a distribution package:
 ```bash
-python test_notifications.py
+create_distribution.bat
 ```
 
-## Troubleshooting
+## Documentation
 
-**Network drive slow?**  
-- Normal - network scans are throttled for safety
-- Try scanning during off-peak hours
-- Test with small subfolder first
-
-**Files being skipped?**  
-- Check file permissions
-- Look for error messages in console
-- Some files may be locked or inaccessible
-
-**Email notifications not working?**  
-- Check SMTP settings in `.env`
-- Use app-specific passwords (not regular passwords)
-- Check spam folder
-- See [SETUP_EMAIL.md](SETUP_EMAIL.md)
-
-**Teams notifications not working?**  
-- Verify webhook URL in `.env`
-- Check internet connection
-- See [SETUP_TEAMS.md](SETUP_TEAMS.md)
-
-**macOS-specific issues?**  
-- See [MACOS_SETUP.md](MACOS_SETUP.md)
-- SSL certificate errors: Run certificate installer
-- Permission issues: Check Firewall settings
+See **[DOCUMENTATION.md](DOCUMENTATION.md)** for complete documentation including:
+- Detailed setup instructions
+- Email provider configurations
+- Teams webhook setup
+- Network drive safety features
+- macOS-specific instructions
+- Troubleshooting guide
+- Technical details
 
 ## Requirements
 
+### For Development
 - Python 3.x
-- pandas
-- openpyxl
-- python-docx (optional - for Word authors)
-- python-pptx (optional - for PowerPoint authors)
-- requests (for Teams notifications)
-- python-dotenv (for configuration)
+- pandas, openpyxl, python-docx, python-pptx
+- requests, python-dotenv
+
+### For End Users
+- Windows 7+ or macOS 10.12+
+- Nothing else!
+
+## Files
+
+- `file_exporter.py` - Main GUI application
+- `file_exporter_core.py` - Core scanning logic
+- `email_notifier.py` - Email notifications
+- `teams_notifier.py` - Teams notifications
+- `build_exe.bat` - One-click executable builder
+- `create_distribution.bat` - Package for distribution
+- `test_notifications.py` - Test notification setup
+- `DOCUMENTATION.md` - Complete documentation
+
+## Support
+
+1. Check [DOCUMENTATION.md](DOCUMENTATION.md)
+2. Run `python test_notifications.py` to test notifications
+3. Check console output for errors
 
 ## License
 
 Free to use and modify.
+
+---
+
+**Version 2.0** | Built with Python, tkinter, pandas, and openpyxl

@@ -136,6 +136,86 @@ def get_file_author(filepath):
         return None
 
 
+def get_file_type(extension):
+    """
+    Categorize a file based on its extension.
+    
+    Args:
+        extension: File extension (e.g., ".pdf", ".jpg")
+        
+    Returns:
+        str: File type category
+    """
+    ext = extension.lower()
+    
+    # Document types
+    if ext in ['.doc', '.docx', '.odt', '.rtf', '.txt', '.wpd']:
+        return 'Document'
+    
+    # Spreadsheet types
+    if ext in ['.xls', '.xlsx', '.xlsm', '.xlsb', '.csv', '.ods']:
+        return 'Spreadsheet'
+    
+    # Presentation types
+    if ext in ['.ppt', '.pptx', '.pps', '.ppsx', '.odp', '.key']:
+        return 'Presentation'
+    
+    # PDF
+    if ext == '.pdf':
+        return 'PDF'
+    
+    # Image types
+    if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tif', '.tiff', '.svg', '.webp', '.ico', '.heic', '.raw', '.cr2', '.nef']:
+        return 'Image'
+    
+    # Design/Graphics
+    if ext in ['.psd', '.ai', '.indd', '.eps', '.sketch', '.fig', '.xd']:
+        return 'Design'
+    
+    # Video types
+    if ext in ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.mkv', '.webm', '.m4v', '.mpg', '.mpeg']:
+        return 'Video'
+    
+    # Audio types
+    if ext in ['.mp3', '.wav', '.flac', '.aac', '.ogg', '.wma', '.m4a', '.aiff']:
+        return 'Audio'
+    
+    # Archive types
+    if ext in ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.iso']:
+        return 'Archive'
+    
+    # Code/Script types
+    if ext in ['.py', '.js', '.java', '.cpp', '.c', '.h', '.cs', '.php', '.rb', '.go', '.swift', '.kt', '.rs', '.ts', '.jsx', '.tsx']:
+        return 'Code'
+    
+    # Web types
+    if ext in ['.html', '.htm', '.css', '.scss', '.sass', '.less', '.xml', '.json', '.yaml', '.yml']:
+        return 'Web'
+    
+    # Database types
+    if ext in ['.sql', '.db', '.sqlite', '.mdb', '.accdb']:
+        return 'Database'
+    
+    # Executable types
+    if ext in ['.exe', '.msi', '.app', '.dmg', '.deb', '.rpm']:
+        return 'Executable'
+    
+    # Font types
+    if ext in ['.ttf', '.otf', '.woff', '.woff2', '.eot']:
+        return 'Font'
+    
+    # 3D/CAD types
+    if ext in ['.dwg', '.dxf', '.obj', '.fbx', '.stl', '.3ds', '.blend']:
+        return '3D/CAD'
+    
+    # Email types
+    if ext in ['.eml', '.msg', '.pst', '.ost']:
+        return 'Email'
+    
+    # Other
+    return 'Other'
+
+
 def parse_extensions(extension_string):
     """
     Parse a comma-separated string of file extensions.
@@ -209,11 +289,17 @@ def build_row(filename, dirpath, root_name, folders, folder_cols,
     """
     filepath = os.path.join(dirpath, filename)
     
+    # Get file extension and type
+    file_extension = os.path.splitext(filename)[1].lower()
+    file_type = get_file_type(file_extension)
+    
     row = {
         "RootFolder": root_name,
         "FolderString": dirpath,
         "FullPath": filepath,          # Full path including filename
         "FileName": filename,
+        "FileExtension": file_extension,
+        "FileType": file_type,
     }
     
     # Add dynamic folder columns

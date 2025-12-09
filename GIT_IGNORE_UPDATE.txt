@@ -1,0 +1,88 @@
+GIT IGNORE UPDATE
+=================
+
+WHAT WAS UPDATED
+----------------
+
+The .gitignore file now excludes:
+
+1. BUILD FOLDERS
+   - build/
+   - dist/
+
+2. DISTRIBUTION FOLDERS
+   - File_Exporter_Distribution/
+   - File_Exporter_Distribution.zip
+
+3. EXECUTABLE FILES
+   - *.exe (Windows)
+   - *.app (macOS)
+   - *.dmg (macOS disk images)
+   - *.msi (Windows installers)
+   - *.deb (Linux Debian packages)
+   - *.rpm (Linux RPM packages)
+
+4. PYINSTALLER FILES
+   - *.spec
+   - file_exporter.spec
+
+WHY THIS MATTERS
+-----------------
+
+✅ Keeps repository clean
+✅ Reduces repository size
+✅ Prevents binary files in version control
+✅ Only source code is tracked
+✅ Each developer builds their own executables
+
+WHAT TO COMMIT
+--------------
+
+DO COMMIT:
+✓ Source code (.py files)
+✓ Documentation (.md files)
+✓ Configuration templates (.env.example)
+✓ Build scripts (.bat files)
+✓ Requirements (requirements.txt)
+
+DON'T COMMIT:
+✗ Executables (.exe, .app, .dmg)
+✗ Build folders (build/, dist/)
+✗ Distribution packages
+✗ Personal settings (.env)
+✗ PyInstaller specs (*.spec)
+
+REMOVED FROM GIT
+----------------
+
+The following were removed from git tracking:
+- build/ folder and all contents
+- dist/ folder and all contents
+- file_exporter.spec
+
+These files/folders still exist on your computer,
+but git will no longer track changes to them.
+
+NEXT STEPS
+----------
+
+1. Commit the updated .gitignore:
+   git add .gitignore
+   git commit -m "Update .gitignore to exclude build artifacts"
+
+2. Build executables locally:
+   build_exe.bat
+
+3. Executables won't be tracked by git anymore
+
+SHARING EXECUTABLES
+-------------------
+
+Since executables are not in git, share them via:
+- Email attachments
+- Network drives
+- File sharing services (OneDrive, Dropbox, etc.)
+- Release packages (GitHub Releases, etc.)
+
+Each developer should build their own executable
+from the source code using build_exe.bat

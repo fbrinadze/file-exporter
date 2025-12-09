@@ -19,7 +19,8 @@ To create a standalone .exe:
 
 import os
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
+from dotenv import set_key, load_dotenv
 
 # Import core functions
 from file_exporter_core import (
@@ -93,6 +94,9 @@ class FileLocationExporter:
         tk.Entry(frame_dir, textvariable=self.directory_var, width=60).pack(side="left")
         tk.Button(frame_dir, text="Browse", command=self.browse_directory).pack(side="left", padx=5)
         
+        # Settings button
+        tk.Button(frame_dir, text="⚙ Settings", command=self.open_settings).pack(side="left", padx=5)
+        
         # ============================================================
         # ROOT FOLDER LABEL
         # A custom label that appears in the "RootFolder" column of the export
@@ -157,10 +161,16 @@ class FileLocationExporter:
             button_frame, 
             text="Export to Excel", 
             command=self.export, 
-            width=15, 
+            width=18, 
             height=2, 
-            bg="#4CAF50", 
-            fg="white"
+            bg="#2E7D32",  # Darker green for better contrast
+            fg="white",
+            font=("Arial", 11, "bold"),
+            activebackground="#1B5E20",  # Even darker when clicked
+            activeforeground="white",
+            relief="raised",
+            bd=3,
+            cursor="hand2"
         )
         self.export_btn.pack(side="left", padx=10)
         
@@ -169,10 +179,16 @@ class FileLocationExporter:
             button_frame, 
             text="Cancel", 
             command=self.cancel_export, 
-            width=15, 
+            width=18, 
             height=2, 
-            bg="#f44336", 
+            bg="#C62828",  # Darker red for better contrast
             fg="white",
+            font=("Arial", 11, "bold"),
+            activebackground="#8E0000",  # Even darker when clicked
+            activeforeground="white",
+            relief="raised",
+            bd=3,
+            cursor="hand2",
             state="disabled"  # Disabled until export starts
         )
         self.cancel_btn.pack(side="left", padx=10)
@@ -188,6 +204,202 @@ class FileLocationExporter:
             self.directory_var.set(folder)
             # Auto-fill root name with top-level folder name
             self.root_name_var.set(get_root_folder_name(folder))
+    
+    
+    def open_settings(self):
+        """
+        Opens the settings dialog for configuring notifications.
+        """
+        settings_window = tk.Toplevel(self.root)
+        settings_window.title("Notification Settings")
+        settings_window.geometry("600x500")
+        settings_window.resizable(False, False)
+        
+        # Load current settings
+        load_dotenv()
+        
+        # Create notebook for tabs
+        notebook = ttk.Notebook(settings_window)
+        notebook.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # ============================================================
+        # EMAIL TAB
+        # ============================================================
+        email_frame = ttk.Frame(notebook)
+        notebook.add(email_frame, text="Email Notifications")
+        
+        tk.Label(email_frame, text="Email Notification Settings", font=("Arial", 12, "bold")).pack(pady=10)
+        tk.Label(email_frame, text="Configure SMTP settings to receive email notifications", fg="gray").pack()
+        
+        # Enable/Disable checkbox
+        email_enabled_var = tk.BooleanVar(value=os.getenv('EMAIL_ENABLED', 'false').lower() == 'true')
+        enable_frame = tk.Frame(email_frame)
+        enable_frame.pack(pady=10)
+        tk.Checkbutton(
+            enable_frame, 
+            text="Enable Email Notifications", 
+            variable=email_enabled_var,
+            font=("Arial", 10, "bold")
+        ).pack()
+        
+        # Email fields
+        fields_frame = tk.Frame(email_frame)
+        fields_frame.pack(pady=20, padx=20, fill="both")
+        
+        tk.Label(fields_frame, text="SMTP Server:").grid(row=0, column=0, sticky="w", pady=5)
+        smtp_server = tk.Entry(fields_frame, width=40)
+        smtp_server.insert(0, os.getenv('SMTP_SERVER', 'smtp.gmail.com'))
+        smtp_server.grid(row=0, column=1, pady=5, padx=5)
+        
+        tk.Label(fields_frame, text="SMTP Port:").grid(row=1, column=0, sticky="w", pady=5)
+        smtp_port = tk.Entry(fields_frame, width=40)
+        smtp_port.insert(0, os.getenv('SMTP_PORT', '587'))
+        smtp_port.grid(row=1, column=1, pady=5, padx=5)
+        
+        tk.Label(fields_frame, text="Username:").grid(row=2, column=0, sticky="w", pady=5)
+        smtp_user = tk.Entry(fields_frame, width=40)
+        smtp_user.insert(0, os.getenv('SMTP_USERNAME', ''))
+        smtp_user.grid(row=2, column=1, pady=5, padx=5)
+        
+        tk.Label(fields_frame, text="Password:").grid(row=3, column=0, sticky="w", pady=5)
+        smtp_pass = tk.Entry(fields_frame, width=40, show="*")
+        smtp_pass.insert(0, os.getenv('SMTP_PASSWORD', ''))
+        smtp_pass.grid(row=3, column=1, pady=5, padx=5)
+        
+        tk.Label(fields_frame, text="From Email:").grid(row=4, column=0, sticky="w", pady=5)
+        from_email = tk.Entry(fields_frame, width=40)
+        from_email.insert(0, os.getenv('FROM_EMAIL', ''))
+        from_email.grid(row=4, column=1, pady=5, padx=5)
+        
+        tk.Label(fields_frame, text="To Email:").grid(row=5, column=0, sticky="w", pady=5)
+        to_email = tk.Entry(fields_frame, width=40)
+        to_email.insert(0, os.getenv('TO_EMAIL', ''))
+        to_email.grid(row=5, column=1, pady=5, padx=5)
+        
+        # Quick presets
+        tk.Label(email_frame, text="Quick Presets:", font=("Arial", 10, "bold")).pack(pady=(10,5))
+        preset_frame = tk.Frame(email_frame)
+        preset_frame.pack()
+        
+        def set_gmail():
+            smtp_server.delete(0, tk.END)
+            smtp_server.insert(0, "smtp.gmail.com")
+            smtp_port.delete(0, tk.END)
+            smtp_port.insert(0, "587")
+        
+        def set_outlook():
+            smtp_server.delete(0, tk.END)
+            smtp_server.insert(0, "smtp.office365.com")
+            smtp_port.delete(0, tk.END)
+            smtp_port.insert(0, "587")
+        
+        tk.Button(preset_frame, text="Gmail", command=set_gmail, width=10).pack(side="left", padx=5)
+        tk.Button(preset_frame, text="Outlook", command=set_outlook, width=10).pack(side="left", padx=5)
+        
+        # ============================================================
+        # TEAMS TAB
+        # ============================================================
+        teams_frame = ttk.Frame(notebook)
+        notebook.add(teams_frame, text="Teams Notifications")
+        
+        tk.Label(teams_frame, text="MS Teams Notification Settings", font=("Arial", 12, "bold")).pack(pady=10)
+        tk.Label(teams_frame, text="Configure webhook URL to receive Teams notifications", fg="gray").pack()
+        
+        # Enable/Disable checkbox
+        teams_enabled_var = tk.BooleanVar(value=os.getenv('TEAMS_ENABLED', 'false').lower() == 'true')
+        teams_enable_frame = tk.Frame(teams_frame)
+        teams_enable_frame.pack(pady=10)
+        tk.Checkbutton(
+            teams_enable_frame, 
+            text="Enable Teams Notifications", 
+            variable=teams_enabled_var,
+            font=("Arial", 10, "bold")
+        ).pack()
+        
+        teams_fields = tk.Frame(teams_frame)
+        teams_fields.pack(pady=20, padx=20, fill="both")
+        
+        tk.Label(teams_fields, text="Webhook URL:").pack(anchor="w", pady=5)
+        teams_webhook = tk.Entry(teams_fields, width=60)
+        teams_webhook.insert(0, os.getenv('TEAMS_WEBHOOK_URL', ''))
+        teams_webhook.pack(pady=5)
+        
+        tk.Label(teams_frame, text="How to get a webhook URL:", font=("Arial", 10, "bold")).pack(pady=(20,5))
+        instructions = tk.Text(teams_frame, height=8, width=60, wrap="word")
+        instructions.insert("1.0", 
+            "1. Open MS Teams and go to your channel\n"
+            "2. Click the three dots (...) next to the channel name\n"
+            "3. Select 'Connectors' or 'Workflows'\n"
+            "4. Search for 'Incoming Webhook'\n"
+            "5. Click 'Add' or 'Configure'\n"
+            "6. Give it a name and click 'Create'\n"
+            "7. Copy the webhook URL and paste it above"
+        )
+        instructions.config(state="disabled")
+        instructions.pack(pady=5)
+        
+        # ============================================================
+        # SAVE BUTTON
+        # ============================================================
+        def save_settings():
+            env_file = '.env'
+            
+            # Create .env if it doesn't exist
+            if not os.path.exists(env_file):
+                with open(env_file, 'w') as f:
+                    f.write("# Notification Settings\n")
+            
+            # Save email enabled/disabled
+            set_key(env_file, 'EMAIL_ENABLED', 'true' if email_enabled_var.get() else 'false')
+            
+            # Save email settings
+            if smtp_server.get():
+                set_key(env_file, 'SMTP_SERVER', smtp_server.get())
+            if smtp_port.get():
+                set_key(env_file, 'SMTP_PORT', smtp_port.get())
+            if smtp_user.get():
+                set_key(env_file, 'SMTP_USERNAME', smtp_user.get())
+            if smtp_pass.get():
+                set_key(env_file, 'SMTP_PASSWORD', smtp_pass.get())
+            if from_email.get():
+                set_key(env_file, 'FROM_EMAIL', from_email.get())
+            if to_email.get():
+                set_key(env_file, 'TO_EMAIL', to_email.get())
+            
+            # Save Teams enabled/disabled
+            set_key(env_file, 'TEAMS_ENABLED', 'true' if teams_enabled_var.get() else 'false')
+            
+            # Save Teams settings
+            if teams_webhook.get():
+                set_key(env_file, 'TEAMS_WEBHOOK_URL', teams_webhook.get())
+            
+            messagebox.showinfo("Success", "Settings saved successfully!\n\nNotifications will be sent based on your enabled settings.")
+            settings_window.destroy()
+        
+        button_frame = tk.Frame(settings_window)
+        button_frame.pack(pady=10)
+        
+        tk.Button(
+            button_frame, 
+            text="Save Settings", 
+            command=save_settings,
+            width=15,
+            height=2,
+            bg="#2E7D32",
+            fg="white",
+            font=("Arial", 10, "bold")
+        ).pack(side="left", padx=5)
+        
+        tk.Button(
+            button_frame, 
+            text="Cancel", 
+            command=settings_window.destroy,
+            width=15,
+            height=2,
+            bg="#757575",
+            fg="white",
+            font=("Arial", 10, "bold")
+        ).pack(side="left", padx=5)
     
     
     def cancel_export(self):

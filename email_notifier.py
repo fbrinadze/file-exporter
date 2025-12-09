@@ -95,6 +95,17 @@ def send_email(subject, body_html, body_text=None, config=None):
         return False
 
 
+def is_enabled():
+    """
+    Check if email notifications are enabled.
+    
+    Returns:
+        bool: True if enabled, False otherwise
+    """
+    load_dotenv()
+    return os.getenv('EMAIL_ENABLED', 'false').lower() == 'true'
+
+
 def send_success_notification(file_count, output_file):
     """
     Send a success notification email.
@@ -103,6 +114,9 @@ def send_success_notification(file_count, output_file):
         file_count: Number of files exported
         output_file: Path to the output Excel file
     """
+    if not is_enabled():
+        return False
+    
     subject = "✅ File Export Complete"
     
     body_html = f"""
@@ -148,6 +162,9 @@ def send_failure_notification(error_message):
     Args:
         error_message: Description of the error
     """
+    if not is_enabled():
+        return False
+    
     subject = "❌ File Export Failed"
     
     body_html = f"""

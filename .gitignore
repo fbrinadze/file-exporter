@@ -26,6 +26,19 @@ wheels/
 # PyInstaller
 *.manifest
 *.spec
+file_exporter.spec
+
+# Distribution folders and executables
+dist/
+build/
+File_Exporter_Distribution/
+File_Exporter_Distribution.zip
+*.exe
+*.app
+*.dmg
+*.msi
+*.deb
+*.rpm
 
 # Unit test / coverage
 .pytest_cache/

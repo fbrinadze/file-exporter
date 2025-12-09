@@ -75,6 +75,17 @@ def send_teams_message(title, message, color="0078D4", webhook_url=None):
         return False
 
 
+def is_enabled():
+    """
+    Check if Teams notifications are enabled.
+    
+    Returns:
+        bool: True if enabled, False otherwise
+    """
+    load_dotenv()
+    return os.getenv('TEAMS_ENABLED', 'false').lower() == 'true'
+
+
 def send_success_notification(file_count, output_file):
     """
     Send a success notification to MS Teams.
@@ -83,6 +94,9 @@ def send_success_notification(file_count, output_file):
         file_count: Number of files exported
         output_file: Path to the output Excel file
     """
+    if not is_enabled():
+        return False
+    
     title = "✅ File Export Complete!"
     message = f"Successfully exported **{file_count}** files to:\n\n`{os.path.basename(output_file)}`"
     return send_teams_message(title, message, color="28A745")  # Green
@@ -95,6 +109,9 @@ def send_failure_notification(error_message):
     Args:
         error_message: Description of the error
     """
+    if not is_enabled():
+        return False
+    
     title = "❌ File Export Failed!"
     message = f"**Error:** {error_message}"
     return send_teams_message(title, message, color="DC3545")  # Red
