@@ -29,6 +29,27 @@ from file_exporter_core import (
     get_root_folder_name
 )
 
+# Import notification functions
+try:
+    from teams_notifier import (
+        send_success_notification as teams_success,
+        send_failure_notification as teams_failure
+    )
+    TEAMS_AVAILABLE = True
+except ImportError:
+    TEAMS_AVAILABLE = False
+    print("Teams notifications not available. Install requests and python-dotenv to enable.")
+
+try:
+    from email_notifier import (
+        send_success_notification as email_success,
+        send_failure_notification as email_failure
+    )
+    EMAIL_AVAILABLE = True
+except ImportError:
+    EMAIL_AVAILABLE = False
+    print("Email notifications not available. Install python-dotenv to enable.")
+
 
 class FileLocationExporter:
     """
@@ -220,102 +241,199 @@ class FileLocationExporter:
         return self.cancel_requested
     
     
+    def check_network_drive(self, directory):
+        """
+        Check if directory is on a network drive and warn user.
+        
+        Args:
+            directory: Path to check
+            
+        Returns:
+            bool: True if user wants to continue, False to cancel
+        """
+        # Check for UNC paths
+        if directory.startswith('\\\\'):
+            response = messagebox.askyesno(
+                "Network Drive Detected",
+                "This appears to be a network drive (UNC path).\n\n"
+                "The scan will use network-safe settings:\n"
+                "• Throttled file access\n"
+                "• Error recovery\n"
+                "• Connection monitoring\n\n"
+                "This may take longer than local drives.\n\n"
+                "Continue?",
+                icon='warning'
+            )
+            return response
+        
+        # Check for mapped network drives on Windows
+        if os.name == 'nt':
+            try:
+                import subprocess
+                drive = os.path.splitdrive(directory)[0]
+                if drive:
+                    result = subprocess.run(['net', 'use', drive], 
+                                          capture_output=True, 
+                                          text=True, 
+                                          timeout=2)
+                    if 'Remote name' in result.stdout or 'Remote' in result.stdout:
+                        response = messagebox.askyesno(
+                            "Network Drive Detected",
+                            f"Drive {drive} appears to be a mapped network drive.\n\n"
+                            "The scan will use network-safe settings:\n"
+                            "• Throttled file access\n"
+                            "• Error recovery\n"
+                            "• Connection monitoring\n\n"
+                            "This may take longer than local drives.\n\n"
+                            "Continue?",
+                            icon='warning'
+                        )
+                        return response
+            except:
+                pass
+        
+        return True  # Not a network drive or couldn't determine
+    
+    
     def export(self):
         """
         Main export function that:
         1. Validates user inputs
-        2. Scans the selected directory for files
-        3. Exports the results to an Excel file
+        2. Checks for network drives
+        3. Scans the selected directory for files
+        4. Exports the results to an Excel file
+        5. Sends Teams notification on success or failure
         """
         
-        # ============================================================
-        # INPUT VALIDATION
-        # Ensure a valid directory is selected before proceeding
-        # ============================================================
-        directory = self.directory_var.get()
-        if not directory:
-            messagebox.showerror("Error", "Please select a directory")
-            return
-        
-        if not os.path.exists(directory):
-            messagebox.showerror("Error", "Directory does not exist")
-            return
-        
-        # ============================================================
-        # OUTPUT FILE SELECTION
-        # Prompt user to choose where to save the Excel file
-        # ============================================================
-        output_file = filedialog.asksaveasfilename(
-            defaultextension=".xlsx",
-            filetypes=[("Excel files", "*.xlsx")],
-            initialfile="FileLocations.xlsx"
-        )
-        if not output_file:
-            return
-        
-        # ============================================================
-        # RESET CANCEL FLAG AND UPDATE UI
-        # Prepare for new export operation
-        # ============================================================
-        self.cancel_requested = False
-        self.set_ui_state(exporting=True)
-        self.progress_var.set("Scanning files...")
-        self.root.update()
-        
-        # ============================================================
-        # PARSE SETTINGS
-        # ============================================================
-        extensions = parse_extensions(self.extensions_var.get())
-        root_name = self.root_name_var.get() or get_root_folder_name(directory)
-        
-        # ============================================================
-        # SCAN DIRECTORY
-        # Uses core module function with callbacks for progress and cancel
-        # ============================================================
-        files = scan_directory(
-            directory=directory,
-            root_name=root_name,
-            folder_cols=self.folder_cols_var.get(),
-            title_case=self.title_case_var.get(),
-            extensions=extensions,
-            include_dates=self.include_dates_var.get(),
-            include_author=self.include_author_var.get(),
-            progress_callback=self.update_progress,
-            cancel_check=self.check_cancel
-        )
-        
-        # ============================================================
-        # HANDLE CANCELLATION
-        # ============================================================
-        if self.cancel_requested:
-            self.progress_var.set(f"Cancelled. Found {len(files)} files before stopping.")
+        try:
+            # ============================================================
+            # INPUT VALIDATION
+            # Ensure a valid directory is selected before proceeding
+            # ============================================================
+            directory = self.directory_var.get()
+            if not directory:
+                messagebox.showerror("Error", "Please select a directory")
+                return
+            
+            if not os.path.exists(directory):
+                messagebox.showerror("Error", "Directory does not exist")
+                return
+            
+            # ============================================================
+            # NETWORK DRIVE CHECK
+            # Warn user if scanning network drive
+            # ============================================================
+            if not self.check_network_drive(directory):
+                return
+            
+            # ============================================================
+            # OUTPUT FILE SELECTION
+            # Prompt user to choose where to save the Excel file
+            # ============================================================
+            output_file = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                filetypes=[("Excel files", "*.xlsx")],
+                initialfile="FileLocations.xlsx"
+            )
+            if not output_file:
+                return
+            
+            # ============================================================
+            # RESET CANCEL FLAG AND UPDATE UI
+            # Prepare for new export operation
+            # ============================================================
+            self.cancel_requested = False
+            self.set_ui_state(exporting=True)
+            self.progress_var.set("Scanning files...")
+            self.root.update()
+            
+            # ============================================================
+            # PARSE SETTINGS
+            # ============================================================
+            extensions = parse_extensions(self.extensions_var.get())
+            root_name = self.root_name_var.get() or get_root_folder_name(directory)
+            
+            # ============================================================
+            # SCAN DIRECTORY
+            # Uses core module function with callbacks for progress and cancel
+            # ============================================================
+            files = scan_directory(
+                directory=directory,
+                root_name=root_name,
+                folder_cols=self.folder_cols_var.get(),
+                title_case=self.title_case_var.get(),
+                extensions=extensions,
+                include_dates=self.include_dates_var.get(),
+                include_author=self.include_author_var.get(),
+                progress_callback=self.update_progress,
+                cancel_check=self.check_cancel
+            )
+            
+            # ============================================================
+            # HANDLE CANCELLATION
+            # ============================================================
+            if self.cancel_requested:
+                self.progress_var.set(f"Cancelled. Found {len(files)} files before stopping.")
+                self.set_ui_state(exporting=False)
+                messagebox.showinfo("Cancelled", f"Export cancelled.\n\n{len(files)} files were found before stopping.")
+                return
+            
+            # ============================================================
+            # VALIDATION
+            # ============================================================
+            if not files:
+                messagebox.showwarning("Warning", "No files found")
+                self.progress_var.set("")
+                self.set_ui_state(exporting=False)
+                
+                error_msg = "No files found in selected directory"
+                if TEAMS_AVAILABLE:
+                    teams_failure(error_msg)
+                if EMAIL_AVAILABLE:
+                    email_failure(error_msg)
+                return
+            
+            # ============================================================
+            # EXPORT TO EXCEL
+            # ============================================================
+            self.progress_var.set("Exporting to Excel...")
+            self.root.update()
+            
+            export_count = export_to_excel(files, output_file)
+            
+            # Reset UI state
             self.set_ui_state(exporting=False)
-            messagebox.showinfo("Cancelled", f"Export cancelled.\n\n{len(files)} files were found before stopping.")
-            return
+            
+            # ============================================================
+            # SEND SUCCESS NOTIFICATIONS
+            # ============================================================
+            if TEAMS_AVAILABLE or EMAIL_AVAILABLE:
+                self.progress_var.set("Sending notifications...")
+                self.root.update()
+                
+                if TEAMS_AVAILABLE:
+                    teams_success(export_count, output_file)
+                
+                if EMAIL_AVAILABLE:
+                    email_success(export_count, output_file)
+            
+            # Show completion message
+            self.progress_var.set(f"Exported {export_count} files")
+            messagebox.showinfo("Success", f"Exported {export_count} files to:\n{output_file}")
         
-        # ============================================================
-        # VALIDATION
-        # ============================================================
-        if not files:
-            messagebox.showwarning("Warning", "No files found")
-            self.progress_var.set("")
+        except Exception as e:
+            # ============================================================
+            # HANDLE ERRORS AND SEND FAILURE NOTIFICATIONS
+            # ============================================================
+            error_msg = str(e)
             self.set_ui_state(exporting=False)
-            return
-        
-        # ============================================================
-        # EXPORT TO EXCEL
-        # ============================================================
-        self.progress_var.set("Exporting to Excel...")
-        self.root.update()
-        
-        export_count = export_to_excel(files, output_file)
-        
-        # Reset UI state
-        self.set_ui_state(exporting=False)
-        
-        # Show completion message
-        self.progress_var.set(f"Exported {export_count} files")
-        messagebox.showinfo("Success", f"Exported {export_count} files to:\n{output_file}")
+            self.progress_var.set("Export failed")
+            messagebox.showerror("Error", f"Export failed:\n{error_msg}")
+            
+            if TEAMS_AVAILABLE:
+                teams_failure(error_msg)
+            if EMAIL_AVAILABLE:
+                email_failure(error_msg)
 
 
 # ============================================================

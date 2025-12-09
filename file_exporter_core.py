@@ -13,6 +13,7 @@ Requirements:
 
 import os
 import datetime
+import time
 import pandas as pd
 
 # ============================================================
@@ -42,6 +43,7 @@ except ImportError:
 def get_file_dates(filepath):
     """
     Get the creation and modification dates of a file.
+    Network-safe with timeout and error handling.
     
     Args:
         filepath: Full path to the file
@@ -50,6 +52,7 @@ def get_file_dates(filepath):
         tuple: (creation_date, modified_date) as formatted strings
     """
     try:
+        # Add timeout protection for network drives
         stat = os.stat(filepath)
         
         # Get modification time (works on all platforms)
@@ -66,6 +69,9 @@ def get_file_dates(filepath):
             creation_date = datetime.datetime.fromtimestamp(stat.st_ctime).strftime("%Y-%m-%d %H:%M:%S")
         
         return creation_date, modified_date
+    except (OSError, IOError, PermissionError, TimeoutError) as e:
+        # Network or permission errors - return None instead of crashing
+        return None, None
     except Exception:
         return None, None
 
@@ -73,6 +79,7 @@ def get_file_dates(filepath):
 def get_file_author(filepath):
     """
     Attempt to extract the author metadata from a file.
+    Network-safe with timeout and error handling.
     
     Supports:
         - Excel files (.xlsx, .xlsm)
@@ -121,6 +128,9 @@ def get_file_author(filepath):
         else:
             return None
             
+    except (OSError, IOError, PermissionError, TimeoutError) as e:
+        # Network or permission errors - skip this file
+        return None
     except Exception:
         # If anything goes wrong, just return None
         return None
@@ -223,11 +233,43 @@ def build_row(filename, dirpath, root_name, folders, folder_cols,
     return row
 
 
+def is_network_path(path):
+    """
+    Check if a path is on a network drive.
+    
+    Args:
+        path: Path to check
+        
+    Returns:
+        bool: True if path is on network drive
+    """
+    # UNC paths (\\server\share)
+    if path.startswith('\\\\'):
+        return True
+    
+    # Mapped network drives on Windows
+    if os.name == 'nt':
+        try:
+            import subprocess
+            drive = os.path.splitdrive(path)[0]
+            if drive:
+                result = subprocess.run(['net', 'use', drive], 
+                                      capture_output=True, 
+                                      text=True, 
+                                      timeout=2)
+                return 'Remote name' in result.stdout or 'Remote' in result.stdout
+        except:
+            pass
+    
+    return False
+
+
 def scan_directory(directory, root_name=None, folder_cols=3, title_case=True,
                    extensions=None, include_dates=True, include_author=True,
                    progress_callback=None, cancel_check=None):
     """
     Scan a directory and collect file information.
+    Network-safe with throttling, error handling, and connection checks.
     
     Args:
         directory: Path to directory to scan
@@ -252,43 +294,92 @@ def scan_directory(directory, root_name=None, folder_cols=3, title_case=True,
     
     files = []
     file_count = 0
+    error_count = 0
+    consecutive_errors = 0
+    max_consecutive_errors = 10
     
-    for dirpath, dirs, filenames in os.walk(directory):
-        # Check for cancellation
-        if cancel_check and cancel_check():
-            break
-        
-        for filename in filenames:
+    # Check if scanning network drive
+    is_network = is_network_path(directory)
+    
+    # Network-safe settings
+    throttle_delay = 0.01 if is_network else 0  # 10ms delay for network drives
+    batch_size = 50 if is_network else 100  # Smaller batches for network
+    
+    try:
+        for dirpath, dirs, filenames in os.walk(directory):
             # Check for cancellation
             if cancel_check and cancel_check():
                 break
             
-            # Extension filtering
-            if extensions:
-                ext = os.path.splitext(filename)[1].lower()
-                if ext not in extensions:
+            # Check for too many consecutive errors (network might be down)
+            if consecutive_errors >= max_consecutive_errors:
+                raise ConnectionError(
+                    f"Too many consecutive errors ({consecutive_errors}). "
+                    "Network drive may be unavailable."
+                )
+            
+            for filename in filenames:
+                # Check for cancellation
+                if cancel_check and cancel_check():
+                    break
+                
+                try:
+                    # Extension filtering
+                    if extensions:
+                        ext = os.path.splitext(filename)[1].lower()
+                        if ext not in extensions:
+                            continue
+                    
+                    # Parse folder structure
+                    folders = parse_folder_structure(dirpath, directory, title_case)
+                    
+                    # Build row with error handling
+                    row = build_row(
+                        filename=filename,
+                        dirpath=dirpath,
+                        root_name=root_name,
+                        folders=folders,
+                        folder_cols=folder_cols,
+                        include_dates=include_dates,
+                        include_author=include_author
+                    )
+                    
+                    files.append(row)
+                    file_count += 1
+                    consecutive_errors = 0  # Reset on success
+                    
+                    # Network throttling - small delay to avoid overwhelming network
+                    if is_network and file_count % 10 == 0:
+                        time.sleep(throttle_delay)
+                    
+                    # Progress callback
+                    if progress_callback and file_count % batch_size == 0:
+                        progress_callback(file_count)
+                
+                except (OSError, IOError, PermissionError) as e:
+                    # File-level error - log and continue
+                    error_count += 1
+                    consecutive_errors += 1
+                    print(f"Warning: Could not process {filename}: {e}")
                     continue
-            
-            # Parse folder structure
-            folders = parse_folder_structure(dirpath, directory, title_case)
-            
-            # Build row
-            row = build_row(
-                filename=filename,
-                dirpath=dirpath,
-                root_name=root_name,
-                folders=folders,
-                folder_cols=folder_cols,
-                include_dates=include_dates,
-                include_author=include_author
-            )
-            
-            files.append(row)
-            file_count += 1
-            
-            # Progress callback
-            if progress_callback and file_count % 100 == 0:
-                progress_callback(file_count)
+                
+                except Exception as e:
+                    # Unexpected error - log and continue
+                    error_count += 1
+                    consecutive_errors += 1
+                    print(f"Warning: Unexpected error with {filename}: {e}")
+                    continue
+    
+    except (OSError, IOError, PermissionError, ConnectionError) as e:
+        # Directory-level error
+        raise Exception(f"Network or permission error: {e}")
+    
+    # Final progress update
+    if progress_callback and file_count > 0:
+        progress_callback(file_count)
+    
+    if error_count > 0:
+        print(f"Completed with {error_count} file errors (skipped)")
     
     return files
 
