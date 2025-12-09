@@ -1,5 +1,6 @@
 # Configuration files - NEVER commit these!
 config.json
+scan_cache.json
 
 # Python
 __pycache__/
