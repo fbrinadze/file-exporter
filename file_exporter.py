@@ -176,14 +176,10 @@ class FileLocationExporter:
             text="Export to Excel", 
             command=self.export, 
             width=18, 
-            height=2, 
-            bg="#2E7D32",  # Darker green for better contrast
-            fg="white",
+            height=2,
             font=("Arial", 11, "bold"),
-            activebackground="#1B5E20",  # Even darker when clicked
-            activeforeground="white",
             relief="raised",
-            bd=3,
+            bd=2,
             cursor="hand2"
         )
         self.export_btn.pack(side="left", padx=5)
@@ -195,13 +191,9 @@ class FileLocationExporter:
             command=self.view_duplicates,
             width=18,
             height=2,
-            bg="#1976D2",  # Blue
-            fg="white",
             font=("Arial", 11, "bold"),
-            activebackground="#0D47A1",
-            activeforeground="white",
             relief="raised",
-            bd=3,
+            bd=2,
             cursor="hand2",
             state="disabled"  # Disabled until duplicates are found
         )
@@ -213,15 +205,10 @@ class FileLocationExporter:
             text="Cancel", 
             command=self.cancel_export, 
             width=18, 
-            height=2, 
-            bg="#C62828",  # Darker red for better contrast
-            fg="yellow",  # Change this to your preferred color
+            height=2,
             font=("Arial", 11, "bold"),
-            activebackground="#8E0000",  # Even darker when clicked
-            activeforeground="white",  # Change this too
-            disabledforeground="white",  # And this for disabled state
             relief="raised",
-            bd=3,
+            bd=2,
             cursor="hand2",
             state="disabled"  # Disabled until export starts
         )
@@ -307,8 +294,6 @@ class FileLocationExporter:
             dup_window,
             text="Export Report",
             command=export_report,
-            bg="#2E7D32",
-            fg="white",
             font=("Arial", 10, "bold")
         ).pack(pady=10)
     
@@ -461,8 +446,6 @@ Most Scanned: {cache_stats['most_scanned'] or 'None'}
             text="Clear Cache",
             command=clear_cache,
             width=15,
-            bg="#FF6B6B",
-            fg="white",
             font=("Arial", 10, "bold")
         ).pack(pady=5)
         
@@ -559,8 +542,6 @@ Most Scanned: {cache_stats['most_scanned'] or 'None'}
             command=save_settings,
             width=15,
             height=2,
-            bg="#2E7D32",
-            fg="white",
             font=("Arial", 10, "bold")
         ).pack(side="left", padx=5)
         
@@ -570,8 +551,6 @@ Most Scanned: {cache_stats['most_scanned'] or 'None'}
             command=settings_window.destroy,
             width=15,
             height=2,
-            bg="#757575",
-            fg="white",
             font=("Arial", 10, "bold")
         ).pack(side="left", padx=5)
     
