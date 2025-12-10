@@ -25,6 +25,9 @@ python file_exporter.py
 ✅ Progress tracking with cancel option  
 ✅ Filter by file extensions  
 ✅ Extract file dates, types, and Office document authors  
+✅ Duplicate file detection with detailed reports  
+✅ Performance cache for faster repeat scans  
+✅ Native dark mode support on macOS  
 ✅ Cross-platform (Windows, macOS, Linux)
 
 ## Configuration
@@ -104,4 +107,4 @@ Free to use and modify.
 
 ---
 
-**Version 2.0** | Network-Safe with Notifications | Built with Python, tkinter, pandas, and openpyxl
+**Version 2.2** | Network-Safe with Duplicate Detection & Dark Mode | Built with Python, tkinter, pandas, and openpyxl
